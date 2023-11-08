@@ -28,9 +28,7 @@ int pressinHg;
 int humidRH;
 int status;
 int soilRead;
-int displayCounter;
-int displayTimer;
-int displayWait;
+
 int pumpTimer;
 bool buttonState;
 int currentQual = -1;
@@ -42,12 +40,9 @@ float ratio = 0;
 float concentration = 0;
 char degree = 0xF8;
 char perc = 0x25;
-void DisplayTimer();
+void DisplayRotation();
 
 SYSTEM_MODE(SEMI_AUTOMATIC);
-
-
-
 
 void setup() {
   Serial.begin(9600);
@@ -63,11 +58,12 @@ void setup() {
     if (status == false){
         Serial.printf("BME failed to start");
     }
-
 }
-
-
 void loop() {
+  // digitalWrite(pump,HIGH);
+  // delay(1000);
+  // digitalWrite(pump,LOW);
+  // delay(1000);
   soilRead = analogRead(soilSensor);
   duration = pulseIn(dustSensor,LOW);
   lowPulseOcc = lowPulseOcc + duration;
@@ -77,8 +73,6 @@ void loop() {
   humidRH = bme.readHumidity();
   tempF = (tempC*9/5)+32;
   pressinHg = pressPA/3386;
-
-
 
   Serial.printf("Moisture Level = %i\n", soilRead);
   if(soilRead>2000){
@@ -121,6 +115,15 @@ void loop() {
             Serial.printf("Fresh air\n");
   }
 
+  DisplayRotation();
+}
+
+void DisplayRotation(){
+
+int displayTimer;
+int displayCounter;
+
+
 if((millis()-displayTimer)>2000){
   displayCounter = displayCounter++;
   display.clearDisplay();
@@ -158,6 +161,7 @@ if(displayCounter=2){
   display.display();
 }
 
+}
 
 
 
@@ -167,6 +171,6 @@ if(displayCounter=2){
  
 
 
-}
+
 
 
