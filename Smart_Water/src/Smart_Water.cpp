@@ -1,7 +1,7 @@
 /* 
  * Project Smart Plant Watering System
  * Author: Jon Phillips
- * Date: Last updated 7 Nov 2023
+ * Date: Last updated 8 Nov 2023
  * 
  *
  */
@@ -12,6 +12,7 @@
 #include <Adafruit_BME280.h>
 #include <Grove_Air_quality_Sensor.h>
 #include <button.h>
+SYSTEM_MODE(SEMI_AUTOMATIC);
 
 int OLED_RESET(-1);
 Adafruit_SSD1306 display(OLED_RESET);
@@ -21,11 +22,11 @@ const int soilSensor = A2;
 const int dustSensor = A0;
 const int pump = D8;
 const int button = D3;
-int tempC;
-int tempF;
-int pressPA;
-int pressinHg;
-int humidRH;
+float tempC;
+float tempF;
+float pressPA;
+float pressinHg;
+float humidRH;
 int status;
 int soilRead;
 
@@ -42,7 +43,7 @@ char degree = 0xF8;
 char perc = 0x25;
 void DisplayRotation();
 
-SYSTEM_MODE(SEMI_AUTOMATIC);
+
 
 void setup() {
   Serial.begin(9600);
@@ -105,60 +106,83 @@ void loop() {
    currentQual = aqSensor.slope();
 
   if (currentQual>= 0){
-        if (currentQual ==0)
+        if (currentQual ==3)
             Serial.printf("High pollution! Force signal active\n");
-        else if (currentQual==1)
-            Serial.printlnf("High pollution!\n");
         else if (currentQual==2)
+            Serial.printlnf("High pollution!\n");
+        else if (currentQual==1)
             Serial.printf("Low pollution!\n");
-        else if (currentQual ==3)
+        else if (currentQual ==0)
             Serial.printf("Fresh air\n");
   }
 
   DisplayRotation();
 }
 
-void DisplayRotation(){
+void DisplayRotation(){                // controls display read out
 
-int displayTimer;
-int displayCounter;
+static int displayTimer;
+static int displayCounter;
 
 
 if((millis()-displayTimer)>2000){
-  displayCounter = displayCounter++;
+  
+  displayCounter++;
   display.clearDisplay();
+  display.display();
   display.setCursor(0,0);
 }
 
-if(displayCounter >=3){
-  displayCounter = 0;
-}
+switch(displayCounter){
 
-
-if(displayCounter=0){
+case 1:
   display.setTextSize(1);
   display.printf("Soil Moisture Level\n");
   display.setTextSize(3);
   display.printf("%i",soilRead);
   display.display();
-}
+  break;
 
-
-if(displayCounter=1){
+case 2:
   display.setTextSize(1);
   display.printf("Current Temp\n");
   display.setTextSize(3);
-  display.printf("%i%iF",tempF,degree);
+  display.printf("%0.1f%cF",tempF,degree);
   display.display();
-}
+  break;
 
-  
-if(displayCounter=2){
+case 3:  
   display.setTextSize(1);
   display.printf("Humidity\n");
   display.setTextSize(3);
-  display.printf("%i%i",humidRH,perc);
+  display.printf("%0.1f%c",humidRH,perc);
+  display.display(); 
+  break;
+
+case 4:
+  display.setTextSize(1);
+  display.printf("Air Pollution\n");
   display.display();
+  display.setTextSize(2);
+  if(currentQual == 0 ){
+    display.printf("Safe");
+    display.display();
+  }
+  if(currentQual == 1){
+    display.printf("Low");
+    display.display();
+  }
+  if(currentQual == 2){
+    display.printf("High");
+    display.display();    
+  }
+  if(currentQual == 3){
+    display.printf("DANGER!!");
+    display.display();
+  }
+    displayCounter = 0;
+    break;
+
 }
 
 }
