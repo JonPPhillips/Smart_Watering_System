@@ -18,7 +18,7 @@ int OLED_RESET(-1);
 Adafruit_SSD1306 display(OLED_RESET);
 Adafruit_BME280 bme;
 AirQualitySensor aqSensor(A1);
-const int soilSensor = A2;
+const int soilSensor = A5 ;
 const int dustSensor = A0;
 const int pump = D8;
 const int button = D3;
@@ -50,6 +50,7 @@ void setup() {
   pinMode(pump,OUTPUT);
   pinMode(dustSensor,INPUT);
   pinMode(button,INPUT);
+  pinMode(soilSensor,INPUT);
   display.begin(SSD1306_SWITCHCAPVCC,0x3C);
   display.clearDisplay();
   display.setCursor(0,0);
@@ -61,10 +62,7 @@ void setup() {
     }
 }
 void loop() {
-  // digitalWrite(pump,HIGH);
-  // delay(1000);
-  // digitalWrite(pump,LOW);
-  // delay(1000);
+ 
   soilRead = analogRead(soilSensor);
   duration = pulseIn(dustSensor,LOW);
   lowPulseOcc = lowPulseOcc + duration;
