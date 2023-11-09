@@ -12,12 +12,22 @@
 #include <Adafruit_BME280.h>
 #include <Grove_Air_quality_Sensor.h>
 #include <button.h>
+#include <credentials.h>
+#include <Adafruit_MQTT.h>
+#include "Adafruit_MQTT/Adafruit_MQTT_SPARK.h"
+#include "Adafruit_MQTT/Adafruit_MQTT.h"
 SYSTEM_MODE(SEMI_AUTOMATIC);
 
 int OLED_RESET(-1);
 Adafruit_SSD1306 display(OLED_RESET);
 Adafruit_BME280 bme;
 AirQualitySensor aqSensor(A1);
+TCPClient TheClient; 
+Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY); 
+Adafruit_MQTT_Publish pubAQ = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Air Quality");
+Adafruit_MQTT_Publish pubTemp = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Temp");
+Adafruit_MQTT_Publish pubMoist = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Soil Moisture");
+Adafruit_MQTT_Publish pubHumid = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Humidity");
 const int soilSensor = A5 ;
 const int dustSensor = A0;
 const int pump = D8;
@@ -42,6 +52,7 @@ float concentration = 0;
 char degree = 0xF8;
 char perc = 0x25;
 void DisplayRotation();
+void WebPublish();
 
 
 
@@ -55,6 +66,14 @@ void setup() {
   display.clearDisplay();
   display.setCursor(0,0);
   display.setTextColor(WHITE);
+
+  WiFi.on();
+  WiFi.connect();
+  while(WiFi.connecting()) {
+    Serial.printf(".");
+  }
+  Serial.printf("\n\n");
+
 
     status = bme.begin(0x76);
     if (status == false){
@@ -75,7 +94,10 @@ void loop() {
 
   Serial.printf("Moisture Level = %i\n", soilRead);
   if(soilRead>2000){
+    Serial.printf("pump on");
     digitalWrite(pump,HIGH);
+    delay(500);
+    digitalWrite(pump,LOW);
   }
     
   if((millis()-pumpTimer)>500){
@@ -116,12 +138,76 @@ void loop() {
   }
 
   DisplayRotation();
+  WebPublish();
+}
+
+void WebPublish(){                       // publishes info to Adafruit
+static int tempTimer;
+static int soilTimer;
+static int humidTimer;
+static int aqTimer;
+
+if((millis()-tempTimer > 9000)) {
+    if(mqtt.Update()) {
+      pubTemp.publish(tempF);
+      Serial.printf("Publishing %0.2f \n",tempF); 
+      } 
+    tempTimer = millis();
+  }
+
+if((millis()-soilTimer > 10000)) {
+    if(mqtt.Update()) {
+      pubMoist.publish(soilRead);
+      Serial.printf("Publishing soil moisture %i\n",soilRead); 
+      } 
+    soilTimer = millis();
+  }
+
+if((millis()-humidTimer > 11000)) {
+    if(mqtt.Update()) {
+      pubHumid.publish(humidRH);
+      Serial.printf("Publishing soil moisture %i\n",soilRead); 
+      } 
+    humidTimer = millis();
+  }
+
+if((millis()-aqTimer > 12000)) {
+    
+    switch(currentQual){
+
+      case 0:
+       if(mqtt.Update()) {
+          pubAQ.publish("Fresh Air");
+       }
+      break;
+
+      case 1:
+        if(mqtt.Update()) {
+          pubAQ.publish("Low Pollution");
+        }
+      break;
+
+      case 2:
+        if(mqtt.Update()) {
+            pubAQ.publish("High Pollution");
+        }
+        break;
+      
+      case 3:
+         if(mqtt.Update()) {
+            pubAQ.publish("POLLUTION AT DANGEROUS LEVELS");
+         }
+         break;
+
+    }
+  }
 }
 
 void DisplayRotation(){                // controls display read out
 
 static int displayTimer;
 static int displayCounter;
+
 
 
 if((millis()-displayTimer)>2000){
@@ -173,7 +259,7 @@ case 4:
   }
   if(currentQual == 2){
     display.printf("High");
-    display.display();    
+    display.display(); 
   }
   if(currentQual == 3){
     display.printf("DANGER!!");
