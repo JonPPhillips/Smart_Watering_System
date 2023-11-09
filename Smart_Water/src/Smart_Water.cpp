@@ -81,11 +81,12 @@ void loop() {
   }
     
   if((millis()-pumpTimer)>500){
+      Serial.printf("Pump Off");
       digitalWrite(pump,LOW);
       pumpTimer = millis();
   }
 
-  if(buttonState){
+  if(buttonState){ 
     digitalWrite(pump,HIGH);
   }
 
